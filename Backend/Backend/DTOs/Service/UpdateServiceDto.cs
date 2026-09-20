@@ -1,0 +1,18 @@
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace Backend.DTOs.Service
+{
+    public class UpdateServiceDto
+    {
+        [Required(ErrorMessage = "Tên dịch vụ là bắt buộc")]
+        public string Name { get; set; } = string.Empty;
+
+        public string? Description { get; set; }
+
+        [Range(1, int.MaxValue, ErrorMessage = "Thời lượng phải lớn hơn 0")]
+        public int DurationMinutes { get; set; }
+
+        [Range(0, double.MaxValue, ErrorMessage = "Giá không được âm")]
+        public decimal Price { get; set; }
+    }
+}
