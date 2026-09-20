@@ -107,15 +107,30 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({
               {services.map((service) => (
                 <div
                   key={service.id}
-                  className="relative rounded-3xl bg-zinc-950 border border-zinc-800 hover:border-amber-500/50 transition-all duration-300 p-6 flex flex-col justify-between group shadow-xl hover:shadow-amber-500/5"
+                  className={`relative rounded-3xl bg-zinc-950 border transition-all duration-300 p-6 flex flex-col justify-between group shadow-xl ${
+                    service.isActive
+                      ? "border-zinc-800 hover:border-amber-500/50 hover:shadow-amber-500/5"
+                      : "border-zinc-800/60 opacity-80"
+                  }`}
                 >
                   <div className="space-y-4">
                     {/* Header: Service Name & Active Badge */}
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20">
-                          Dịch vụ #{service.id}
-                        </span>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20">
+                            Dịch vụ #{service.id}
+                          </span>
+                          {service.isActive ? (
+                            <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                              Đang hoạt động
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-semibold text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/20">
+                              Tạm ngưng
+                            </span>
+                          )}
+                        </div>
                         <h3 className="text-xl font-bold text-white group-hover:text-amber-400 transition-colors mt-2">
                           {service.name}
                         </h3>
@@ -149,10 +164,19 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({
                     </button>
 
                     <button
-                      onClick={() => onSelectService(service.name)}
-                      className="py-2.5 px-3 bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-extrabold rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                      disabled={!service.isActive}
+                      onClick={() => {
+                        if (service.isActive) {
+                          onSelectService(service.name);
+                        }
+                      }}
+                      className={`py-2.5 px-3 text-xs font-extrabold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+                        service.isActive
+                          ? "bg-amber-500 hover:bg-amber-400 text-zinc-950 shadow-md cursor-pointer"
+                          : "bg-zinc-800/80 text-zinc-500 cursor-not-allowed opacity-50 border border-zinc-700/50"
+                      }`}
                     >
-                      <span>ĐẶT LỊCH</span>
+                      <span>{service.isActive ? "ĐẶT LỊCH" : "TẠM NGƯNG"}</span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </button>
                   </div>

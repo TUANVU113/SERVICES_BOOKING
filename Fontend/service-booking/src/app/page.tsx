@@ -8,10 +8,12 @@ import { ServicesSection } from "@/components/home/ServicesSection";
 import { StylistsSection } from "@/components/home/StylistsSection";
 import { BookingModal } from "@/components/home/BookingModal";
 import { ServiceDetailModal } from "@/components/home/ServiceDetailModal";
+import { UserBookingsModal } from "@/components/home/UserBookingsModal";
 import { Footer } from "@/components/layout/Footer";
 
 export default function HomePage() {
   const [isBookingOpen, setIsBookingOpen] = useState(false);
+  const [isMyBookingsOpen, setIsMyBookingsOpen] = useState(false);
   const [selectedService, setSelectedService] = useState<string | undefined>(undefined);
   const [viewDetailId, setViewDetailId] = useState<number | null>(null);
 
@@ -30,7 +32,10 @@ export default function HomePage() {
   return (
     <main className="min-h-screen bg-zinc-950 text-white relative">
       {/* Header Bar */}
-      <Header onOpenBooking={() => handleOpenBooking()} />
+      <Header
+        onOpenBooking={() => handleOpenBooking()}
+        onOpenMyBookings={() => setIsMyBookingsOpen(true)}
+      />
 
       {/* Auth Login Modal */}
       <LoginModal />
@@ -59,6 +64,12 @@ export default function HomePage() {
         isOpen={isBookingOpen}
         onClose={handleCloseBooking}
         preSelectedService={selectedService}
+      />
+
+      {/* User My Bookings Modal */}
+      <UserBookingsModal
+        isOpen={isMyBookingsOpen}
+        onClose={() => setIsMyBookingsOpen(false)}
       />
 
       {/* Footer */}

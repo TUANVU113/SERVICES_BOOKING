@@ -1,6 +1,9 @@
 using Backend.Data;
 using Backend.Services.Auth;
+using Backend.Services.Booking;
 using Backend.Services.Service;
+using Backend.Services.Staff;
+using Backend.Services.WorkSchedule;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -19,9 +22,12 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 
+builder.Services.AddScoped<IBookingService, BookingService>();
+builder.Services.AddScoped<IWorkScheduleService, WorkScheduleService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IServiceService, ServiceService>();
+builder.Services.AddScoped<IStaffService, StaffService>();
 
 
 // ---------- Cấu hình JWT Authentication ----------

@@ -140,19 +140,26 @@ export const ServiceDetailModal: React.FC<ServiceDetailModalProps> = ({
               <div className="pt-4 border-t border-zinc-800 flex items-center gap-3">
                 <button
                   onClick={onClose}
-                  className="flex-1 py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold rounded-xl text-sm transition-all"
+                  className="flex-1 py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold rounded-xl text-sm transition-all cursor-pointer"
                 >
                   Đóng
                 </button>
                 <button
+                  disabled={!service.isActive}
                   onClick={() => {
-                    onClose();
-                    onBookService(service.name);
+                    if (service.isActive) {
+                      onClose();
+                      onBookService(service.name);
+                    }
                   }}
-                  className="flex-1 py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-zinc-950 font-extrabold rounded-xl shadow-lg shadow-amber-500/20 text-sm flex items-center justify-center gap-2"
+                  className={`flex-1 py-3 font-extrabold rounded-xl text-sm flex items-center justify-center gap-2 transition-all ${
+                    service.isActive
+                      ? "bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-zinc-950 shadow-lg shadow-amber-500/20 cursor-pointer"
+                      : "bg-zinc-800/80 text-zinc-500 cursor-not-allowed opacity-50 border border-zinc-700/50"
+                  }`}
                 >
                   <Calendar className="w-4 h-4" />
-                  <span>ĐẶT LỊCH NGAY</span>
+                  <span>{service.isActive ? "ĐẶT LỊCH NGAY" : "DỊCH VỤ TẠM NGƯNG"}</span>
                 </button>
               </div>
             </div>

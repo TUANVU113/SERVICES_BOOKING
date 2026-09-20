@@ -7,9 +7,10 @@ import { UserMenu } from "@/components/auth/UserMenu";
 
 interface HeaderProps {
   onOpenBooking: () => void;
+  onOpenMyBookings?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onOpenBooking }) => {
+export const Header: React.FC<HeaderProps> = ({ onOpenBooking, onOpenMyBookings }) => {
   const { isLoggedIn, openLoginModal } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -79,12 +80,23 @@ export const Header: React.FC<HeaderProps> = ({ onOpenBooking }) => {
                 <span>Đăng Nhập</span>
               </button>
             ) : (
-              <UserMenu />
+              <>
+                <UserMenu />
+                {onOpenMyBookings && (
+                  <button
+                    onClick={onOpenMyBookings}
+                    className="flex items-center gap-2 py-2.5 px-4 bg-zinc-900 hover:bg-zinc-800 text-amber-400 border border-zinc-800 hover:border-amber-500/40 font-semibold rounded-xl text-xs transition-all cursor-pointer"
+                  >
+                    <Calendar className="w-4 h-4" />
+                    <span>Lịch Đặt Của Tôi</span>
+                  </button>
+                )}
+              </>
             )}
 
             <button
               onClick={onOpenBooking}
-              className="flex items-center gap-2 py-2.5 px-5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-zinc-950 font-bold rounded-xl shadow-lg shadow-amber-500/20 active:scale-95 transition-all cursor-pointer"
+              className="flex items-center gap-2 py-2.5 px-5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-zinc-950 font-bold rounded-xl shadow-lg shadow-amber-500/20 active:scale-95 transition-all cursor-pointer text-xs sm:text-sm"
             >
               <Calendar className="w-4 h-4" />
               <span>Đặt Lịch Ngay</span>

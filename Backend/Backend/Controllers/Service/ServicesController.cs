@@ -29,7 +29,7 @@ namespace Backend.Controllers.Service
                 return BadRequest(ModelState);
 
             var created = await _serviceService.CreateServiceAsync(dto);
-            return CreatedAtAction(nameof(GetServiceById), new { id = created.Id }, created);
+            return Ok(new { message = "Tạo dịch vụ thành công" });
         }
 
         // GET api/services?pageNumber=1&pageSize=10
