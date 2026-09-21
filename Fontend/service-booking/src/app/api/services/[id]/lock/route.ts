@@ -44,7 +44,7 @@ export async function PATCH(
   } catch (error: unknown) {
     const errMessage = error instanceof Error ? error.message : "Lỗi kết nối";
     return NextResponse.json(
-      { message: `Không thể kết nối Backend API: ${errMessage}` },
+      { message: `Không thể kết nối: ${errMessage}` },
       { status: 500 }
     );
   }

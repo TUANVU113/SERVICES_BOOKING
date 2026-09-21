@@ -44,35 +44,67 @@ namespace Backend.Services.Booking
             if (startTimeOfDay < ShopOpenTime || endTimeOfDay > ShopCloseTime || endTime.Date != dto.StartTime.Date)
                 return (false, "Booking phải nằm trong giờ làm việc (8:00 - 18:00)", null);
 
-            // Kiểm tra trùng lịch: NewStart < ExistingEnd AND NewEnd > ExistingStart (cùng nhân viên, chưa bị hủy)
-            var isOverlapped = await _context.Bookings.AnyAsync(b =>
-                b.StaffId == dto.StaffId &&
-                b.Status != "Cancelled" &&
-                dto.StartTime < b.EndTime &&
-                endTime > b.StartTime);
+            // ===== XỬ LÝ RACE CONDITION: 2 request đặt cùng khung giờ =====
+            // Dùng transaction + khóa (UPDLOCK, HOLDLOCK) ở tầng SQL Server để đảm bảo
+            // chỉ 1 request được đọc + ghi tại 1 thời điểm cho cùng StaffId.
+            // Request thứ 2 sẽ phải CHỜ request thứ 1 commit xong mới được đọc tiếp,
+            // nên lúc đó sẽ thấy đúng booking vừa tạo và phát hiện trùng lịch chính xác.
+            await using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
 
-            if (isOverlapped)
-                return (false, "Nhân viên đã có lịch trùng trong khoảng thời gian này", null);
-
-            var bookingCode = $"BK{DateTime.UtcNow:yyyyMMddHHmmssfff}";
-
-            var booking = new Models.Booking
+            try
             {
-                BookingCode = bookingCode,
-                CustomerId = customerId,
-                ServiceId = dto.ServiceId,
-                StaffId = dto.StaffId,
-                StartTime = dto.StartTime,
-                EndTime = endTime,
-                Status = "Pending",
-                CustomerNote = dto.CustomerNote,
-                CreatedAt = DateTime.Now
-            };
+                // Khóa toàn bộ booking (chưa hủy) của nhân viên này lại trong lúc kiểm tra + insert
+                var lockedBookings = await _context.Bookings
+                    .FromSqlInterpolated($@"
+                        SELECT * FROM Bookings WITH (UPDLOCK, HOLDLOCK)
+                        WHERE StaffId = {dto.StaffId} AND Status != 'Cancelled'")
+                    .ToListAsync();
 
-            _context.Bookings.Add(booking);
-            await _context.SaveChangesAsync();
+                // Giả lập delay để test deadlock/timeout khi 2 request cùng đặt trùng khung giờ
+                await Task.Delay(5000);
 
-            return (true, null, await MapToDtoAsync(booking.Id));
+                // Kiểm tra trùng lịch: NewStart < ExistingEnd AND NewEnd > ExistingStart
+                var isOverlapped = lockedBookings.Any(b =>
+                    dto.StartTime < b.EndTime && endTime > b.StartTime);
+
+                if (isOverlapped)
+                {
+                    await transaction.RollbackAsync();
+                    return (false, "Nhân viên đã có lịch trùng trong khoảng thời gian này", null);
+                }
+
+                var bookingCode = $"BK{DateTime.UtcNow:yyyyMMddHHmmssfff}";
+
+                var booking = new Models.Booking
+                {
+                    BookingCode = bookingCode,
+                    CustomerId = customerId,
+                    ServiceId = dto.ServiceId,
+                    StaffId = dto.StaffId,
+                    StartTime = dto.StartTime,
+                    EndTime = endTime,
+                    Status = "Pending",
+                    CustomerNote = dto.CustomerNote,
+                    CreatedAt = DateTime.Now
+                };
+
+                _context.Bookings.Add(booking);
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return (true, null, await MapToDtoAsync(booking.Id));
+            }
+            catch (Microsoft.Data.SqlClient.SqlException ex) when (ex.Number is 1205 or 1222)
+            {
+                // 1205 = Deadlock, 1222 = Lock request timeout - đúng là do tranh chấp khóa, yêu cầu thử lại
+                await transaction.RollbackAsync();
+                return (false, "Hệ thống đang xử lý một yêu cầu khác cho cùng khung giờ, vui lòng thử lại", null);
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
 
         public async Task<PagedResultDto<BookingDto>> GetBookingsAsync(

@@ -11,5 +11,6 @@ namespace Backend.Services.Staff
         Task<(bool Success, string? ErrorMessage)> UpdateStaffAsync(int id, UpdateStaffDto dto);
         Task<bool> LockStaffAsync(int id);
         Task<bool> UnlockStaffAsync(int id);
+        Task<List<StaffDto>> GetStaffsWorkingOnDateAsync(DateOnly date);
     }
 }

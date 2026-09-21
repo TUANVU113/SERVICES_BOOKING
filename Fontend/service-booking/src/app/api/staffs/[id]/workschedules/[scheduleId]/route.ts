@@ -37,7 +37,7 @@ export async function GET(
   } catch (error: unknown) {
     const errMessage = error instanceof Error ? error.message : "Lỗi mạng";
     return NextResponse.json(
-      { message: `Lỗi kết nối Backend API: ${errMessage}` },
+      { message: `Lỗi kết nối: ${errMessage}` },
       { status: 500 }
     );
   }
@@ -89,7 +89,7 @@ export async function PUT(
   } catch (error: unknown) {
     const errMessage = error instanceof Error ? error.message : "Lỗi kết nối";
     return NextResponse.json(
-      { message: `Không thể kết nối Backend API: ${errMessage}` },
+      { message: `Không thể kết nối: ${errMessage}` },
       { status: 500 }
     );
   }
@@ -136,7 +136,7 @@ export async function DELETE(
   } catch (error: unknown) {
     const errMessage = error instanceof Error ? error.message : "Lỗi kết nối";
     return NextResponse.json(
-      { message: `Không thể kết nối Backend API: ${errMessage}` },
+      { message: `Không thể kết nối: ${errMessage}` },
       { status: 500 }
     );
   }

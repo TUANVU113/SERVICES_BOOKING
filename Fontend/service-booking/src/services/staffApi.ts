@@ -215,4 +215,45 @@ export const staffApi = {
       );
     }
   },
+
+  // 7. GET working staff by date: GET /api/staffs/working?date=YYYY-MM-DD
+  getWorkingStaffs: async (
+    date: string,
+    token?: string
+  ): Promise<StaffItem[]> => {
+    try {
+      const headers: Record<string, string> = {
+        Accept: "application/json",
+      };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(
+        `/api/staffs/working?date=${encodeURIComponent(date)}`,
+        {
+          method: "GET",
+          headers,
+          cache: "no-store",
+        }
+      );
+
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new StaffApiError(
+          data?.message || "Không thể tải danh sách nhân viên có ca làm việc",
+          response.status
+        );
+      }
+
+      return data || [];
+    } catch (error: unknown) {
+      if (error instanceof StaffApiError) throw error;
+      throw new StaffApiError(
+        error instanceof Error ? error.message : "Đã xảy ra lỗi không xác định"
+      );
+    }
+  },
 };
+

@@ -133,5 +133,20 @@ namespace Backend.Services.Staff
             await _context.SaveChangesAsync();
             return true;
         }
+        public async Task<List<StaffDto>> GetStaffsWorkingOnDateAsync(DateOnly date)
+        {
+            // Chỉ lấy nhân viên: đang hoạt động (chưa bị khóa) VÀ có ca làm việc đúng ngày được hỏi
+            return await _context.Staffs
+                .Where(s => s.IsActive && _context.WorkSchedules.Any(w => w.StaffId == s.Id && w.WorkDate == date))
+                .Select(s => new StaffDto
+                {
+                    Id = s.Id,
+                    FullName = s.FullName,
+                    Email = s.Email,
+                    IsActive = s.IsActive
+                })
+                .ToListAsync();
+        }
+      
     }
 }

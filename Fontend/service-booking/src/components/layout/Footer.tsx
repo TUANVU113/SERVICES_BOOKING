@@ -8,7 +8,7 @@ export const Footer: React.FC = () => {
     <footer id="footer" className="bg-zinc-950 border-t border-zinc-800 text-zinc-400 text-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
-          
+
           {/* Col 1: Brand */}
           <div className="space-y-4">
             <div className="flex items-center gap-3">
@@ -36,11 +36,7 @@ export const Footer: React.FC = () => {
             <ul className="space-y-2 text-xs">
               <li className="flex items-center gap-2">
                 <Clock className="w-4 h-4 text-amber-400 shrink-0" />
-                <span>Thứ 2 - Thứ 6: 08:30 - 20:30</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-amber-400 shrink-0" />
-                <span>Thứ 7 - Chủ Nhật: 08:00 - 21:30</span>
+                <span>Thứ 2 - Chủ Nhật: 08:00 - 18:00</span>
               </li>
               <li className="text-amber-400 font-medium pt-1">
                 * Phục vụ xuyên suốt các ngày lễ lớn trong năm
@@ -56,15 +52,15 @@ export const Footer: React.FC = () => {
             <ul className="space-y-2.5 text-xs">
               <li className="flex items-start gap-2.5">
                 <MapPin className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                <span>123 Đường Lê Lợi, Phường Bến Thành, Quận 1, TPHCM</span>
+                <span>14 Văn Chung Phường 13 Tân Bình  TPHCM</span>
               </li>
               <li className="flex items-center gap-2.5">
                 <Phone className="w-4 h-4 text-amber-400 shrink-0" />
-                <span>Hotline: 1900 888 999 - 090.123.4567</span>
+                <span>Hotline: 0394057627</span>
               </li>
               <li className="flex items-center gap-2.5">
                 <Mail className="w-4 h-4 text-amber-400 shrink-0" />
-                <span>Email: contact@gentlemanbarber.vn</span>
+                <span>Email: tuanvu27102004@gmail.com</span>
               </li>
             </ul>
           </div>
@@ -72,20 +68,17 @@ export const Footer: React.FC = () => {
           {/* Col 4: Quick Links */}
           <div className="space-y-3">
             <h4 className="text-base font-bold text-white uppercase tracking-wider">
-              Hệ Thống API & Bảo Mật
+              Hệ Thống & Bảo Mật
             </h4>
             <p className="text-xs text-zinc-400 leading-relaxed">
-              Tích hợp hệ thống quản lý lịch hẹn thông minh kết nối tới Backend API ASP.NET Core:
+              Tích hợp hệ thống quản lý lịch hẹn thông minh
             </p>
-            <div className="p-3 rounded-xl bg-zinc-900 border border-zinc-800 text-[11px] font-mono text-amber-400 break-all">
-              POST https://localhost:7118/api/Auth/login
-            </div>
           </div>
 
         </div>
 
         <div className="mt-12 pt-8 border-t border-zinc-900 text-center text-xs text-zinc-400">
-          © 2026 Gentleman Barber Shop. Tất cả quyền được bảo lưu. Thiết kế và phát triển bởi Antigravity.
+          © 2026 Gentleman Barber Shop.Thiết kế và phát triển bởi VuDaiCaXaHoiDen.
         </div>
       </div>
     </footer>

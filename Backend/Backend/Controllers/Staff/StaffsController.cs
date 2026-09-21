@@ -101,5 +101,14 @@ namespace Backend.Controllers.Staff
 
             return Ok(new { message = "Đã mở lại nhân viên" });
         }
+        // GET api/staffs/working?date=2026-09-25
+        // Trả về danh sách nhân viên đang hoạt động VÀ có ca làm việc đúng ngày này
+        // Dùng để FE lọc dropdown chọn nhân viên khi đặt lịch, trước khi gọi available-slots
+        [HttpGet("working")]
+        public async Task<IActionResult> GetStaffsWorkingOnDate([FromQuery] DateOnly date)
+        {
+            var staffs = await _staffService.GetStaffsWorkingOnDateAsync(date);
+            return Ok(staffs);
+        }
     }
 }

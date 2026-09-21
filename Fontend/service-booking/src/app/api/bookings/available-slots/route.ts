@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 
 const BACKEND_BASE = "https://localhost:7118/api/bookings/available-slots";
 
@@ -47,8 +47,9 @@ export async function GET(request: Request) {
   } catch (error: unknown) {
     const errMessage = error instanceof Error ? error.message : "Lỗi mạng";
     return NextResponse.json(
-      { message: `Lỗi kết nối Backend API: ${errMessage}` },
+      { message: `Lỗi kết nối: ${errMessage}` },
       { status: 500 }
     );
   }
 }
+

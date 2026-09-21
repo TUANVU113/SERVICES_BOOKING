@@ -5,7 +5,6 @@ import { Header } from "@/components/layout/Header";
 import { LoginModal } from "@/components/auth/LoginModal";
 import { HeroSection } from "@/components/home/HeroSection";
 import { ServicesSection } from "@/components/home/ServicesSection";
-import { StylistsSection } from "@/components/home/StylistsSection";
 import { BookingModal } from "@/components/home/BookingModal";
 import { ServiceDetailModal } from "@/components/home/ServiceDetailModal";
 import { UserBookingsModal } from "@/components/home/UserBookingsModal";
@@ -48,9 +47,6 @@ export default function HomePage() {
         onSelectService={(sName) => handleOpenBooking(sName)}
         onViewDetail={(sId) => setViewDetailId(sId)}
       />
-
-      {/* Master Barbers Team Section */}
-      <StylistsSection />
 
       {/* Service Detail Popup Modal */}
       <ServiceDetailModal

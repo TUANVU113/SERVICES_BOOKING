@@ -42,47 +42,47 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
   const todayStr = useMemo(() => getTodayDateString(), []);
 
-  // Services & Staffs Data (Filtered Active Only)
+  // Services & Working Staffs Data
   const [activeServices, setActiveServices] = useState<ServiceItem[]>([]);
-  const [activeStaffs, setActiveStaffs] = useState<StaffItem[]>([]);
+  const [workingStaffs, setWorkingStaffs] = useState<StaffItem[]>([]);
 
   // Selected State
   const [selectedServiceId, setSelectedServiceId] = useState<number | null>(null);
+  const [bookingDate, setBookingDate] = useState<string>("");
   const [selectedStaffId, setSelectedStaffId] = useState<number | null>(null);
-  const [bookingDate, setBookingDate] = useState<string>(todayStr);
   const [bookingTime, setBookingTime] = useState<string>("09:00");
   const [customerNote, setCustomerNote] = useState<string>("");
 
-  // Available Slots state from API 4
+  // Loading states
+  const [isLoadingServices, setIsLoadingServices] = useState<boolean>(true);
+  const [isLoadingStaffs, setIsLoadingStaffs] = useState<boolean>(false);
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
   const [isLoadingSlots, setIsLoadingSlots] = useState<boolean>(false);
 
-  const [isLoadingData, setIsLoadingData] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
-  // 1. Fetch Active Services & Active Staffs
+  // 1. Fetch Active Services on open
   useEffect(() => {
     if (isOpen) {
-      setIsLoadingData(true);
+      setIsLoadingServices(true);
       setErrorMsg(null);
       setIsSuccess(false);
+      setBookingDate("");
+      setWorkingStaffs([]);
+      setSelectedStaffId(null);
+      setAvailableSlots([]);
+      setBookingTime("09:00");
+      setCustomerNote("");
 
-      Promise.all([
-        serviceApi.getServices(1, 100),
-        staffApi.getStaffs(1, 100, token || undefined),
-      ])
-        .then(([servicesRes, staffsRes]) => {
-          // Filter ONLY ACTIVE items
+      serviceApi
+        .getServices(1, 100)
+        .then((servicesRes) => {
           const validServices = (servicesRes.data || []).filter((s) => s.isActive !== false);
-          const validStaffs = (staffsRes.data || []).filter((st) => st.isActive !== false);
-
           setActiveServices(validServices);
-          setActiveStaffs(validStaffs);
 
-          // Pre-select service if passed or default to first
           let initialService = validServices[0] || null;
           if (preSelectedService) {
             const matched = validServices.find(
@@ -92,22 +92,63 @@ export const BookingModal: React.FC<BookingModalProps> = ({
           }
 
           if (initialService) setSelectedServiceId(initialService.id);
-          if (validStaffs.length > 0) setSelectedStaffId(validStaffs[0].id);
-
-          setBookingDate(todayStr);
         })
         .catch((err) => {
-          setErrorMsg(err instanceof Error ? err.message : "Không thể tải danh sách dịch vụ và nhân viên");
+          setErrorMsg(err instanceof Error ? err.message : "Không thể tải danh sách dịch vụ");
         })
         .finally(() => {
-          setIsLoadingData(false);
+          setIsLoadingServices(false);
         });
     }
-  }, [isOpen, preSelectedService, token, todayStr]);
+  }, [isOpen, preSelectedService]);
 
-  // 2. Fetch Available Slots whenever serviceId, staffId, or date changes
+  // 2. Fetch Working Staff when bookingDate changes
+  const fetchWorkingStaffs = useCallback(
+    async (dateStr: string) => {
+      if (!dateStr) {
+        setWorkingStaffs([]);
+        setSelectedStaffId(null);
+        return;
+      }
+      setIsLoadingStaffs(true);
+      try {
+        const res = await staffApi.getWorkingStaffs(dateStr, token || undefined);
+        const validStaffs = (res || []).filter((st) => st.isActive !== false);
+        setWorkingStaffs(validStaffs);
+
+        if (validStaffs.length > 0) {
+          setSelectedStaffId(validStaffs[0].id);
+        } else {
+          setSelectedStaffId(null);
+        }
+      } catch (err: unknown) {
+        setWorkingStaffs([]);
+        setSelectedStaffId(null);
+        const msg = err instanceof Error ? err.message : "Không thể tải danh sách nhân viên có ca làm việc";
+        setErrorMsg(msg);
+      } finally {
+        setIsLoadingStaffs(false);
+      }
+    },
+    [token]
+  );
+
+  const handleDateChange = (newDate: string) => {
+    setBookingDate(newDate);
+    if (newDate) {
+      fetchWorkingStaffs(newDate);
+    } else {
+      setWorkingStaffs([]);
+      setSelectedStaffId(null);
+    }
+  };
+
+  // 3. Fetch Available Slots whenever serviceId, staffId, or date changes
   const fetchAvailableSlots = useCallback(async () => {
-    if (!selectedServiceId || !selectedStaffId || !bookingDate) return;
+    if (!selectedServiceId || !selectedStaffId || !bookingDate) {
+      setAvailableSlots([]);
+      return;
+    }
     setIsLoadingSlots(true);
     try {
       const res = await bookingApi.getAvailableSlots(
@@ -117,14 +158,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         token || undefined
       );
       setAvailableSlots(res.availableSlots || []);
-      // If currently selected time is not in available slots, reset to first available slot
       if (res.availableSlots && res.availableSlots.length > 0) {
         if (!res.availableSlots.includes(bookingTime)) {
           setBookingTime(res.availableSlots[0]);
         }
       }
     } catch {
-      // Fallback: assume all slots open if endpoint returns error
       setAvailableSlots(TIME_SLOTS);
     } finally {
       setIsLoadingSlots(false);
@@ -158,12 +197,16 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       setErrorMsg("Vui lòng chọn dịch vụ.");
       return;
     }
-    if (!selectedStaffId) {
-      setErrorMsg("Vui lòng chọn thợ cắt tóc.");
+    if (!bookingDate || bookingDate < todayStr) {
+      setErrorMsg("Vui lòng chọn ngày đặt lịch hợp lệ (từ hôm nay trở đi).");
       return;
     }
-    if (!bookingDate || bookingDate < todayStr) {
-      setErrorMsg("Ngày đặt lịch không hợp lệ hoặc đã ở trong quá khứ.");
+    if (!selectedStaffId) {
+      setErrorMsg("Vui lòng chọn nhân viên phụ trách.");
+      return;
+    }
+    if (!bookingTime) {
+      setErrorMsg("Vui lòng chọn khung giờ hẹn.");
       return;
     }
     if (isSlotInPast(bookingTime)) {
@@ -199,7 +242,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   };
 
   const currentServiceObj = activeServices.find((s) => s.id === selectedServiceId);
-  const currentStaffObj = activeStaffs.find((st) => st.id === selectedStaffId);
+  const currentStaffObj = workingStaffs.find((st) => st.id === selectedStaffId);
 
   return (
     <>
@@ -235,10 +278,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
           </div>
 
           {/* Body Content */}
-          {isLoadingData ? (
+          {isLoadingServices ? (
             <div className="p-12 text-center space-y-3">
               <Loader2 className="w-10 h-10 text-amber-400 animate-spin mx-auto" />
-              <p className="text-sm text-zinc-400">Đang tải danh sách dịch vụ & thợ cắt tóc...</p>
+              <p className="text-sm text-zinc-400">Đang tải danh sách dịch vụ...</p>
             </div>
           ) : isSuccess ? (
             <div className="p-8 text-center space-y-4">
@@ -252,7 +295,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
               <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 text-left text-xs space-y-2 max-w-md mx-auto">
                 <p>• <strong>Dịch vụ:</strong> {currentServiceObj?.name} ({Number(currentServiceObj?.price || 0).toLocaleString("vi-VN")} đ)</p>
-                <p>• <strong>Thợ phụ trách:</strong> {currentStaffObj?.fullName}</p>
+                <p>• <strong>Thợ phụ trách:</strong> {currentStaffObj?.fullName || "N/A"}</p>
                 <p>• <strong>Thời gian:</strong> {bookingTime} - Ngày {bookingDate}</p>
                 {customerNote && <p>• <strong>Ghi chú:</strong> {customerNote}</p>}
               </div>
@@ -292,7 +335,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 </div>
               )}
 
-              {/* Step 1: Select Active Service (Hide locked ones) */}
+              {/* Step 1: Chọn Dịch Vụ */}
               <div className="space-y-2">
                 <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-300">
                   1. Chọn Dịch Vụ <span className="text-rose-500">*</span>
@@ -314,61 +357,83 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 )}
               </div>
 
-              {/* Step 2: Select Active Staff (Hide locked ones) */}
+              {/* Step 2: Chọn Ngày Hẹn */}
               <div className="space-y-2">
                 <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-300">
-                  2. Chọn Barber Stylist Phụ Trách <span className="text-rose-500">*</span>
+                  2. Chọn Ngày Hẹn <span className="text-rose-500">*</span>
                 </label>
-                {activeStaffs.length === 0 ? (
-                  <p className="text-xs text-rose-400 italic">Hiện chưa có nhân viên nào sẵn sàng phục vụ.</p>
+                <input
+                  type="date"
+                  min={todayStr}
+                  value={bookingDate}
+                  onChange={(e) => handleDateChange(e.target.value)}
+                  className="w-full py-3 px-4 bg-zinc-950 border border-zinc-800 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500 cursor-pointer"
+                />
+                {!bookingDate && (
+                  <p className="text-[11px] text-amber-400 font-medium">
+                    ⚠️ Vui lòng chọn ngày hẹn để hiển thị danh sách nhân viên đi làm và chọn khung giờ.
+                  </p>
+                )}
+              </div>
+
+              {/* Step 3: Chọn Barber Stylist Phụ Trách (Ràng buộc: Phải chọn ngày trước) */}
+              <div className={`space-y-2 transition-all ${!bookingDate ? "opacity-50" : ""}`}>
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-300">
+                    3. Chọn Barber Stylist Phụ Trách <span className="text-rose-500">*</span>
+                  </label>
+                  {isLoadingStaffs && (
+                    <span className="text-[10px] text-amber-400 flex items-center gap-1">
+                      <Loader2 className="w-3 h-3 animate-spin" /> Đang tải danh sách nhân viên đi làm...
+                    </span>
+                  )}
+                </div>
+
+                {!bookingDate ? (
+                  <div className="py-3 px-4 bg-zinc-950/60 border border-zinc-800/60 rounded-xl text-zinc-500 text-sm cursor-not-allowed select-none">
+                    Chưa chọn ngày (vui lòng chọn ngày ở bước 2 trước)
+                  </div>
+                ) : workingStaffs.length === 0 && !isLoadingStaffs ? (
+                  <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs">
+                    Không có nhân viên nào có ca làm việc trong ngày {bookingDate}. Vui lòng chọn ngày khác.
+                  </div>
                 ) : (
                   <select
+                    disabled={!bookingDate || isLoadingStaffs}
                     value={selectedStaffId || ""}
                     onChange={(e) => setSelectedStaffId(Number(e.target.value))}
-                    className="w-full py-3 px-4 bg-zinc-950 border border-zinc-800 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500 cursor-pointer"
+                    className="w-full py-3 px-4 bg-zinc-950 border border-zinc-800 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
-                    {activeStaffs.map((st) => (
+                    {workingStaffs.map((st) => (
                       <option key={st.id} value={st.id}>
-                        {st.fullName} ({st.email})
+                        {st.fullName}
                       </option>
                     ))}
                   </select>
                 )}
               </div>
 
-              {/* Step 3: Date Picker & Interactive Slots (08:00 to 18:00) */}
-              <div className="space-y-4">
-                <div className="space-y-2">
+              {/* Step 4: Chọn Khung Giờ Khả Dụng (Ràng buộc: Phải chọn ngày & nhân viên trước) */}
+              <div className={`space-y-2 transition-all ${(!bookingDate || !selectedStaffId) ? "opacity-50" : ""}`}>
+                <div className="flex items-center justify-between">
                   <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-300">
-                    3. Chọn Ngày Hẹn <span className="text-rose-500">*</span>
+                    4. Chọn Khung Giờ Khả Dụng (08:00 - 18:00, bước 30p) <span className="text-rose-500">*</span>
                   </label>
-                  <input
-                    type="date"
-                    min={todayStr}
-                    value={bookingDate}
-                    onChange={(e) => setBookingDate(e.target.value)}
-                    className="w-full py-3 px-4 bg-zinc-950 border border-zinc-800 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500"
-                  />
-                  <p className="text-[10px] text-zinc-500">Khóa chọn các ngày trong quá khứ</p>
+                  {isLoadingSlots && (
+                    <span className="text-[10px] text-amber-400 flex items-center gap-1">
+                      <Loader2 className="w-3 h-3 animate-spin" /> Đang kiểm tra lịch trống...
+                    </span>
+                  )}
                 </div>
 
-                {/* Slots grid from 08:00 to 18:00 with occupied / past slot dimming */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-300">
-                      4. Chọn Khung Giờ Khả Dụng (08:00 - 18:00, bước 30p) <span className="text-rose-500">*</span>
-                    </label>
-                    {isLoadingSlots && (
-                      <span className="text-[10px] text-amber-400 flex items-center gap-1">
-                        <Loader2 className="w-3 h-3 animate-spin" /> Đang kiểm tra lịch trống...
-                      </span>
-                    )}
+                {!bookingDate || !selectedStaffId ? (
+                  <div className="p-4 bg-zinc-950/60 border border-zinc-800/60 rounded-xl text-zinc-500 text-xs text-center cursor-not-allowed select-none">
+                    Vui lòng chọn ngày hẹn và nhân viên trước để mở chọn khung giờ
                   </div>
-
+                ) : (
                   <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
                     {TIME_SLOTS.map((t) => {
                       const isPast = isSlotInPast(t);
-                      // Check if slot is returned as available by backend API 4
                       const isAvailableByApi = availableSlots.length === 0 || availableSlots.includes(t);
                       const isOptionDisabled = isPast || !isAvailableByApi;
 
@@ -380,7 +445,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                         <button
                           key={t}
                           type="button"
-                          disabled={isOptionDisabled}
+                          disabled={isOptionDisabled || !bookingDate || !selectedStaffId}
                           onClick={() => setBookingTime(t)}
                           className={`py-2 px-1 text-xs font-semibold rounded-xl border transition-all text-center flex flex-col items-center justify-center ${
                             bookingTime === t && !isOptionDisabled
@@ -396,10 +461,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                       );
                     })}
                   </div>
-                </div>
+                )}
               </div>
 
-              {/* Step 4: Customer Note */}
+              {/* Step 5: Customer Note */}
               <div className="space-y-1.5 pt-2 border-t border-zinc-800">
                 <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-300">
                   Ghi Chú Yêu Cầu Dịch Vụ (Tùy chọn)
@@ -416,7 +481,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               {/* Submit Button */}
               <button
                 type="submit"
-                disabled={isSubmitting || activeServices.length === 0 || activeStaffs.length === 0}
+                disabled={isSubmitting || activeServices.length === 0 || !bookingDate || !selectedStaffId || !bookingTime}
                 className="w-full py-4 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-zinc-950 font-extrabold text-base rounded-2xl shadow-xl shadow-amber-500/20 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? (
@@ -436,3 +501,4 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     </>
   );
 };
+
