@@ -1,17 +1,58 @@
 # 💈 GENTLEMAN BARBER - HỆ THỐNG ĐẶT LỊCH CẮT TÓC ONLINE
 
-Dự án website đặt lịch cắt tóc trực tuyến **Gentleman Barber Shop**, bao gồm hệ thống **Backend RESTful API (ASP.NET Core)** và **Frontend Web App (Next.js 16)** với giao diện hiện đại, tối ưu cho trải nghiệm người dùng trên cả máy tính và điện thoại.
 
----
+1. clone Repository GitHub chứa source backend và frontend
+https://github.com/TUANVU113/SERVICES_BOOKING
 
+
+2. Cài đặt
 ## 🛠️ Công Nghệ Sử Dụng
 
 ### 1. Backend (API Server)
-- **Framework:** ASP.NET Core Web API (.NET 8)
-- **Database:** Microsoft SQL Server
-- **ORM:** Entity Framework Core (EF Core)
-- **Authentication:** JWT (JSON Web Token) / Cookie-based session
-- **Địa chỉ API mặc định:** `https://localhost:7118`
+Yêu cầu môi trường - Công cụ	Phiên bản
+.NET SDK	.10
+SQL Server	2019 trở lên (bản Developer/Express đều được)
+SSMS	Để xem/thao tác database (không bắt buộc)
+Visual Studio 2022	Hoặc VS Code + C# Dev Kit
+Postman	Để test API
+Địa chỉ API mặc định: `https://localhost:7118`
+
+2. Cài đặt
+# Clone / giải nén project, sau đó vào thư mục gốc
+cd Backend
+
+# Khôi phục các package NuGet
+dotnet restore
+
+3. Cấu hình kết nối Database
+Mở file appsettings.json, sửa lại ConnectionStrings cho đúng SQL Server máy bạn
+
+4. Tạo Database bằng Migration (Code First)
+
+Mở Package Manager Console (Tools → NuGet Package Manager → Package Manager Console):
+
+Add-Migration InitialCreate
+Update-Database
+
+5. Nạp dữ liệu demo
+
+Mở file data.sql bằng SSMS (kết nối tới BookingSystemDB vừa tạo), bấm Execute (F5) để có sẵn dữ liệu mẫu dùng test ngay: 1 Admin, 3 Customer, 4 nhân viên, 5 dịch vụ, lịch làm việc 7 ngày, 10 booking đủ 4 trạng thái.
+
+Tài khoản demo (mật khẩu đều là 123456):
+
+Vai trò	Email
+Admin	admin@gmail.com
+Customer	user1@gmail.com, user2@gmail.com, user3@gmail.com
+
+6. Các địa chỉ quan trọng sau khi chạy
+Chức năng	URL
+Swagger (xem & test toàn bộ API)	https://localhost:<port>/swagger
+Hangfire Dashboard (xem job xử lý booking quá hạn)	https://localhost:<port>/hangfire
+SignalR Hub (real-time)	https://localhost:<port>/hubs/booking
+
+7. Import Postman Collection
+
+Mở Postman → Import → chọn file BookingSystem API.postman_collection.json đi kèm. Sửa biến baseUrl trong tab Variables của collection cho khớp đúng port bạn đang chạy.
 
 ### 2. Frontend (Client Web App)
 - **Framework:** Next.js 16 (React 19 App Router)
@@ -20,8 +61,6 @@ Dự án website đặt lịch cắt tóc trực tuyến **Gentleman Barber Shop
 - **HTTP Proxy:** Next.js API Routes Proxy
 - **Địa chỉ Web mặc định:** `http://localhost:3000`
 
----
-
 ## 📋 Yêu Cầu Môi Trường (Prerequisites)
 
 Trước khi bắt đầu cài đặt, hãy đảm bảo máy tính của bạn đã cài sẵn:
@@ -29,59 +68,23 @@ Trước khi bắt đầu cài đặt, hãy đảm bảo máy tính của bạn 
 2. **.NET SDK:** Phiên bản `.NET 8.0` SDK ([Tải .NET SDK](https://dotnet.microsoft.com/download))
 3. **SQL Server:** SQL Server Express / Developer / SSMS hoặc LocalDB.
 
----
 
 ## 🚀 Hướng Dẫn Cài Đặt & Khởi Chạy
 
-### 🔴 BƯỚC 1: Khởi Chạy Backend (ASP.NET Core API)
-
-1. Mở Terminal / PowerShell và di chuyển vào thư mục Backend:
-   ```bash
-   cd Backend/Backend
-   ```
-
-2. Cấu hình chuỗi kết nối Database trong file `appsettings.json`:
-   ```json
-   "ConnectionStrings": {
-     "DefaultConnection": "Server=YOUR_SERVER_NAME;Database=ServiceBookingDb;Trusted_Connection=True;TrustServerCertificate=True;"
-   }
-   ```
-
-3. Cập nhật Database (Tạo bảng và dữ liệu mẫu):
-   ```bash
-   dotnet ef database update
-   ```
-   *(Nếu chưa cài EF Core CLI, chạy: `dotnet tool install --global dotnet-ef`)*
-
-4. Khởi chạy Backend Server:
-   ```bash
-   dotnet run
-   ```
-   => Backend API sẽ hoạt động tại: **`https://localhost:7118`** (Bạn có thể truy cập Swagger tại `https://localhost:7118/swagger` để kiểm tra các API).
-
----
-
-### 🟢 BƯỚC 2: Khởi Chạy Frontend (Next.js Web App)
+### Khởi Chạy Frontend (Next.js Web App)
 
 1. Mở một cửa sổ Terminal mới và di chuyển vào thư mục Frontend:
    ```bash
-   cd Fontend/service-booking
-   ```
-
 2. Cài đặt các gói thư viện phụ thuộc (Dependencies):
    ```bash
    npm install
    ```
-
 3. Khởi chạy môi trường phát triển (Development Mode):
    ```bash
    npm run dev
    ```
-
 4. Mở trình duyệt web và truy cập địa chỉ:
    => **`http://localhost:3000`**
-
----
 
 ## 📁 Cấu Trúc Thư Mục Dự Án (Frontend)
 
@@ -109,24 +112,65 @@ service-booking/
 └── README.md
 ```
 
----
+### 3. Docker-compose 
 
-## 🔑 Tài Khoản Thử Nghiệm Mẫu
+# Booking System Backend
 
-- **Tài khoản Khách hàng (User):**
-  - **Email:** `user1@gmail.com`
-  - **Mật khẩu:** `123456`
-- **Tài khoản Quản trị (Admin):**
-  - **Email:** `admin@gmail.com`
-  - **Mật khẩu:** `admin123` *(hoặc tài khoản Admin được tạo trong Database)*
+## Requirements
 
----
+- Docker Desktop
+- Git
 
-## ⚠️ Lưu Ý Khi Bàn Giao & Vận Hành
+## Run project
 
-1. **Khởi chạy đúng thứ tự:** Bật **Backend API (`https://localhost:7118`) trước**, sau đó mới bật **Frontend (`http://localhost:3000`)**.
-2. **Cơ chế SSL Localhost:** Trên môi trường dev local, Frontend đã được cấu hình tự động bỏ qua chứng chỉ SSL tự ký của localhost (`process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"`).
-3. **CORS:** Đảm bảo Backend ASP.NET Core đã bật `UseCors` cho phép nguồn `http://localhost:3000` truy cập API.
+Clone source:
 
----
-✨ *Chúc bạn bàn giao dự án thành công!*
+git clone <GIT_URL>
+
+
+Build:
+
+docker compose build
+
+Start:
+
+docker compose up -d
+
+Check:
+
+docker compose ps
+
+## Database
+
+Install EF Core CLI:
+
+dotnet tool install --global dotnet-ef
+
+Go to Backend project:
+
+cd Backend
+
+Run migration:
+
+dotnet ef database update --connection "Server=localhost,1433;Database=BookingSystemDB;User Id=sa;Password=YourStrongPassword123!;TrustServerCertificate=True;"
+(Mật khẩu đặt tùy ý)
+
+## Swagger
+
+http://localhost:5000/swagger
+
+## SQL Server
+
+Server: localhost,1433
+Username: sa
+Password: YourStrongPassword123!
+Database: BookingSystemDB
+
+## Stop
+
+docker compose stop
+
+## Remove containers
+
+docker compose down
+✨ *Chúc mọi người thành công!* Ký tên DŨ
