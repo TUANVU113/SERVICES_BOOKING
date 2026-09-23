@@ -2,11 +2,13 @@
 
 import React from "react";
 import Link from "next/link";
-import { Scissors, ShieldCheck, Home, LogOut } from "lucide-react";
+import { Scissors, ShieldCheck, Home, LogOut, Radio } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { useSignalR } from "@/context/SignalRContext";
 
 export const AdminHeader: React.FC = () => {
   const { user, logout } = useAuth();
+  const { isConnected, connectionState } = useSignalR();
 
   return (
     <header className="bg-zinc-950 border-b border-zinc-800 py-4 px-6 sticky top-0 z-40 shadow-xl">
@@ -32,6 +34,27 @@ export const AdminHeader: React.FC = () => {
 
         {/* Right User & Controls */}
         <div className="flex items-center gap-4">
+          {/* SignalR Connection Status Indicator */}
+          <div
+            className={`hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all ${
+              isConnected
+                ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                : connectionState === "Reconnecting"
+                ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
+                : "bg-zinc-900 border-zinc-800 text-zinc-500"
+            }`}
+            title={`Trạng thái SignalR: ${connectionState}`}
+          >
+            <Radio className={`w-3.5 h-3.5 ${isConnected ? "animate-pulse text-emerald-400" : ""}`} />
+            <span>
+              {isConnected
+                ? "Real-time đang bật"
+                : connectionState === "Reconnecting"
+                ? "Đang kết nối lại..."
+                : "Real-time ngoại tuyến"}
+            </span>
+          </div>
+
           <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs">
             <ShieldCheck className="w-4 h-4 text-amber-400" />
             <span className="text-zinc-300">Quản trị viên:</span>

@@ -26,7 +26,7 @@ namespace Backend.Services.WorkSchedule
 
             var query = _context.WorkSchedules
                 .Where(w => w.StaffId == staffId)
-                .OrderBy(w => w.WorkDate).ThenBy(w => w.StartTime); // bắt buộc có ORDER BY khi Skip/Take
+                .OrderBy(w => w.WorkDate).ThenBy(w => w.StartTime);
 
             var totalCount = await query.CountAsync();
 
@@ -78,7 +78,6 @@ namespace Backend.Services.WorkSchedule
         public async Task<(bool Success, string? ErrorMessage, WorkScheduleDto? Data)> CreateWorkScheduleAsync(
             int staffId, CreateWorkScheduleDto dto)
         {
-            // Điều kiện 1: StartTime phải nhỏ hơn EndTime
             if (dto.StartTime >= dto.EndTime)
                 return (false, "Giờ bắt đầu phải nhỏ hơn giờ kết thúc", null);
 
@@ -86,12 +85,9 @@ namespace Backend.Services.WorkSchedule
             if (staff == null)
                 return (false, "Không tìm thấy nhân viên", null);
 
-            // Điều kiện 3: không tạo lịch làm việc cho nhân viên bị khóa
             if (!staff.IsActive)
                 return (false, "Nhân viên đã bị khóa, không thể tạo lịch làm việc", null);
 
-            // Điều kiện 2: không trùng ca làm việc trong cùng ngày cho cùng nhân viên
-            // Trùng khi: cùng ngày VÀ 2 khoảng giờ giao nhau (StartA < EndB && EndA > StartB)
             var isOverlapped = await _context.WorkSchedules.AnyAsync(w =>
                 w.StaffId == staffId &&
                 w.WorkDate == dto.WorkDate &&
@@ -127,7 +123,6 @@ namespace Backend.Services.WorkSchedule
         public async Task<(bool Success, string? ErrorMessage)> UpdateWorkScheduleAsync(
             int staffId, int id, UpdateWorkScheduleDto dto)
         {
-            // Điều kiện 1: StartTime phải nhỏ hơn EndTime
             if (dto.StartTime >= dto.EndTime)
                 return (false, "Giờ bắt đầu phải nhỏ hơn giờ kết thúc");
 
@@ -140,11 +135,9 @@ namespace Backend.Services.WorkSchedule
             if (staff == null)
                 return (false, "Không tìm thấy nhân viên");
 
-            // Điều kiện 3: không cập nhật lịch cho nhân viên đang bị khóa
             if (!staff.IsActive)
                 return (false, "Nhân viên đã bị khóa, không thể cập nhật lịch làm việc");
 
-            // Điều kiện 2: không trùng với ca khác (loại trừ chính bản ghi đang sửa)
             var isOverlapped = await _context.WorkSchedules.AnyAsync(w =>
                 w.StaffId == staffId &&
                 w.Id != id &&

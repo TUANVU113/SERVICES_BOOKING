@@ -20,16 +20,16 @@ namespace Backend.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            // ========== USERS ==========
+           
             modelBuilder.Entity<User>(entity =>
             {
-                entity.HasIndex(e => e.Email).IsUnique(); // Email không được trùng
+                entity.HasIndex(e => e.Email).IsUnique(); 
                 entity.Property(e => e.Role).HasDefaultValue("Customer");
                 entity.Property(e => e.IsActive).HasDefaultValue(true);
                 entity.Property(e => e.CreatedAt).HasDefaultValueSql("SYSDATETIME()");
             });
 
-            // ========== SERVICES ==========
+            
             modelBuilder.Entity<Service>(entity =>
             {
                 entity.Property(e => e.IsActive).HasDefaultValue(true);
@@ -41,22 +41,22 @@ namespace Backend.Data
                 });
             });
 
-            // ========== STAFF ==========
+            
             modelBuilder.Entity<Staff>(entity =>
             {
-                entity.HasIndex(e => e.Email).IsUnique(); // Email không được trùng
+                entity.HasIndex(e => e.Email).IsUnique(); 
                 entity.Property(e => e.IsActive).HasDefaultValue(true);
             });
 
-            // ========== WORKSCHEDULE ==========
+           
             modelBuilder.Entity<WorkSchedule>(entity =>
             {
                 entity.HasOne(e => e.Staff)
                       .WithMany(s => s.WorkSchedules)
                       .HasForeignKey(e => e.StaffId)
-                      .OnDelete(DeleteBehavior.Cascade); // xóa Staff -> xóa luôn lịch làm việc
+                      .OnDelete(DeleteBehavior.Cascade); 
 
-                entity.HasIndex(e => e.StaffId); // index phụ tăng tốc truy vấn
+                entity.HasIndex(e => e.StaffId); 
 
                 entity.ToTable(t =>
                 {
@@ -64,11 +64,11 @@ namespace Backend.Data
                 });
             });
 
-            // ========== BOOKINGS ==========
+            
             modelBuilder.Entity<Booking>(entity =>
             {
-                entity.HasIndex(e => e.BookingCode).IsUnique(); // BookingCode không được trùng
-                entity.HasIndex(e => e.CustomerId); // index phụ
+                entity.HasIndex(e => e.BookingCode).IsUnique(); 
+                entity.HasIndex(e => e.CustomerId); 
                 entity.HasIndex(e => e.StaffId);
                 entity.HasIndex(e => e.ServiceId);
 
@@ -78,7 +78,7 @@ namespace Backend.Data
                 entity.HasOne(e => e.Customer)
                       .WithMany(u => u.Bookings)
                       .HasForeignKey(e => e.CustomerId)
-                      .OnDelete(DeleteBehavior.Restrict); // giữ lịch sử booking, không cho xóa User
+                      .OnDelete(DeleteBehavior.Restrict); 
 
                 entity.HasOne(e => e.Service)
                       .WithMany(s => s.Bookings)

@@ -16,7 +16,6 @@ namespace Backend.Controllers.WorkSchedule
             _workScheduleService = workScheduleService;
         }
 
-        // GET api/staffs/5/workschedules?pageNumber=1&pageSize=10
         [HttpGet]
         public async Task<IActionResult> GetWorkSchedules(int staffId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
         {
@@ -27,7 +26,7 @@ namespace Backend.Controllers.WorkSchedule
             return Ok(data);
         }
 
-        // GET api/staffs/5/workschedules/3
+        
         [HttpGet("{id}")]
         public async Task<IActionResult> GetWorkScheduleById(int staffId, int id)
         {
@@ -38,8 +37,7 @@ namespace Backend.Controllers.WorkSchedule
             return Ok(data);
         }
 
-        // POST api/staffs/5/workschedules
-        // Chỉ Admin mới được tạo lịch làm việc
+      
         [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<IActionResult> CreateWorkSchedule(int staffId, [FromBody] CreateWorkScheduleDto dto)
@@ -53,14 +51,13 @@ namespace Backend.Controllers.WorkSchedule
                 if (errorMessage == "Không tìm thấy nhân viên")
                     return NotFound(new { message = errorMessage });
 
-                return BadRequest(new { message = errorMessage }); // sai giờ, trùng ca, nhân viên bị khóa
+                return BadRequest(new { message = errorMessage }); 
             }
 
             return Ok(new { message = "Tạo lịch làm việc thành công" });
         }
 
-        // PUT api/staffs/5/workschedules/3
-        // Chỉ Admin mới được cập nhật
+        
         [Authorize(Roles = "Admin")]
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateWorkSchedule(int staffId, int id, [FromBody] UpdateWorkScheduleDto dto)
@@ -79,8 +76,7 @@ namespace Backend.Controllers.WorkSchedule
 
             return Ok(new { message = "Cập nhật lịch làm việc thành công" });
         }
-        // DELETE api/staffs/5/workschedules/3
-        // Chỉ Admin mới được xóa lịch làm việc
+        
         [Authorize(Roles = "Admin")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteWorkSchedule(int staffId, int id)

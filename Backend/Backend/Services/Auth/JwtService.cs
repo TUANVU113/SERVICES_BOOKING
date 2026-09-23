@@ -22,10 +22,9 @@ namespace Backend.Services.Auth
             var jwtAudience = _configuration["Jwt:Audience"]!;
             var expireMinutes = int.Parse(_configuration["Jwt:ExpireMinutes"]!);
 
-            // Claims: thông tin người dùng được "nhúng" bên trong token
             var claims = new List<Claim>
             {
-                new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),   // Id user
+                new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),   
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),    // dùng để lấy lại ở Controller khác
                 new Claim(ClaimTypes.Email, user.Email),
                 new Claim(ClaimTypes.Name, user.FullName),

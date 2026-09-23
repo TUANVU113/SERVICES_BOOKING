@@ -164,6 +164,40 @@ export default function AdminPage() {
     }
   }, [isAuthLoading, isLoggedIn, isAdmin, activeTab, servicesPage, staffsPage, bookingsPage, loadServices, loadStaffs, loadBookings, router]);
 
+  // Real-time booking updates via SignalR custom DOM events
+  useEffect(() => {
+    const handleBookingCreated = (e: Event) => {
+      const customEvent = e as CustomEvent<BookingItem>;
+      const newBooking = customEvent.detail;
+      console.log("⚡ [AdminPage] Live BookingCreated event:", newBooking);
+
+      setBookings((prev) => {
+        // Avoid duplicate booking
+        if (prev.some((b) => b.id === newBooking.id)) return prev;
+        return [newBooking, ...prev];
+      });
+      setBookingsTotalCount((prev) => prev + 1);
+    };
+
+    const handleBookingStatusChanged = (e: Event) => {
+      const customEvent = e as CustomEvent<BookingItem>;
+      const updatedBooking = customEvent.detail;
+      console.log("⚡ [AdminPage] Live BookingStatusChanged event:", updatedBooking);
+
+      setBookings((prev) =>
+        prev.map((b) => (b.id === updatedBooking.id ? { ...b, status: updatedBooking.status } : b))
+      );
+    };
+
+    window.addEventListener("booking:created", handleBookingCreated);
+    window.addEventListener("booking:statusChanged", handleBookingStatusChanged);
+
+    return () => {
+      window.removeEventListener("booking:created", handleBookingCreated);
+      window.removeEventListener("booking:statusChanged", handleBookingStatusChanged);
+    };
+  }, []);
+
   // Service Handlers
   const handleServiceSubmit = async (payload: CreateServicePayload | UpdateServicePayload) => {
     if (!token) return;

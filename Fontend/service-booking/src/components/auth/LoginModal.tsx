@@ -134,11 +134,10 @@ export const LoginModal: React.FC = () => {
                     if (errors.email) setErrors((prev) => ({ ...prev, email: undefined }));
                   }}
                   placeholder="user1@gmail.com"
-                  className={`w-full py-3 pl-11 pr-4 bg-zinc-950/80 border rounded-xl text-white placeholder-zinc-500 text-sm focus:outline-none focus:ring-2 transition-all ${
-                    errors.email
+                  className={`w-full py-3 pl-11 pr-4 bg-zinc-950/80 border rounded-xl text-white placeholder-zinc-500 text-sm focus:outline-none focus:ring-2 transition-all ${errors.email
                       ? "border-rose-500 focus:ring-rose-500/30"
                       : "border-zinc-800 focus:border-amber-500 focus:ring-amber-500/20"
-                  }`}
+                    }`}
                 />
               </div>
               {errors.email && (
@@ -166,11 +165,10 @@ export const LoginModal: React.FC = () => {
                       setErrors((prev) => ({ ...prev, password: undefined }));
                   }}
                   placeholder="••••••••"
-                  className={`w-full py-3 pl-11 pr-11 bg-zinc-950/80 border rounded-xl text-white placeholder-zinc-500 text-sm focus:outline-none focus:ring-2 transition-all ${
-                    errors.password
+                  className={`w-full py-3 pl-11 pr-11 bg-zinc-950/80 border rounded-xl text-white placeholder-zinc-500 text-sm focus:outline-none focus:ring-2 transition-all ${errors.password
                       ? "border-rose-500 focus:ring-rose-500/30"
                       : "border-zinc-800 focus:border-amber-500 focus:ring-amber-500/20"
-                  }`}
+                    }`}
                 />
                 <button
                   type="button"
@@ -187,16 +185,6 @@ export const LoginModal: React.FC = () => {
               )}
             </div>
 
-            {/* Quick Fill Test Credentials Helper */}
-            <div className="flex items-center justify-between pt-1">
-              <button
-                type="button"
-                onClick={handleQuickFill}
-                className="text-xs text-amber-400 hover:text-amber-300 underline underline-offset-4 cursor-pointer"
-              >
-                Tải nhanh tài khoản thử nghiệm (user1@gmail.com)
-              </button>
-            </div>
 
             {/* Submit Button */}
             <button
@@ -207,18 +195,13 @@ export const LoginModal: React.FC = () => {
               {isSubmitting ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin text-zinc-950" />
-                  <span>Đang kết nối API...</span>
+                  <span>Đang kết nối</span>
                 </>
               ) : (
                 <span>ĐĂNG NHẬP NGAY</span>
               )}
             </button>
           </form>
-
-          {/* Footer Note */}
-          <div className="px-6 py-4 bg-zinc-950/60 border-t border-zinc-800/80 text-center text-xs text-zinc-400">
-            Kết nối bảo mật với API <span className="font-mono text-zinc-300">https://localhost:7118/api/Auth/login</span>
-          </div>
         </div>
       </div>
     </>

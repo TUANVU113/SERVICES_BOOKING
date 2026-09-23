@@ -1,6 +1,7 @@
 ﻿using Backend.Data;
 using Backend.DTOs.Booking;
 using Backend.DTOs.Common;
+using Backend.Services.Booking.BookingNotification;
 using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Services.Booking
@@ -8,17 +9,17 @@ namespace Backend.Services.Booking
     public class BookingService : IBookingService
     {
         private readonly ApplicationDbContext _context;
+        private readonly IBookingNotificationService _notificationService;
 
-        // Giờ làm việc cố định của cửa hàng: 8h sáng - 18h tối
         private static readonly TimeOnly ShopOpenTime = new(8, 0);
         private static readonly TimeOnly ShopCloseTime = new(18, 0);
 
-        // Bước nhảy khi sinh khung giờ trống
         private const int SlotStepMinutes = 30;
 
-        public BookingService(ApplicationDbContext context)
+        public BookingService(ApplicationDbContext context, IBookingNotificationService notificationService)
         {
             _context = context;
+            _notificationService = notificationService;
         }
 
         public async Task<(bool Success, string? ErrorMessage, BookingDto? Data)> CreateBookingAsync(int customerId, CreateBookingDto dto)
@@ -31,39 +32,29 @@ namespace Backend.Services.Booking
             if (staff == null || !staff.IsActive)
                 return (false, "Nhân viên không tồn tại hoặc đã bị khóa", null);
 
-            // Backend tự tính EndTime, không nhận từ client
             var endTime = dto.StartTime.AddMinutes(service.DurationMinutes);
 
-            // Không đặt lịch trong quá khứ
             if (dto.StartTime <= DateTime.Now)
                 return (false, "Không thể đặt lịch trong quá khứ", null);
 
-            // Phải nằm trong giờ làm việc 8h - 18h
             var startTimeOfDay = TimeOnly.FromDateTime(dto.StartTime);
             var endTimeOfDay = TimeOnly.FromDateTime(endTime);
             if (startTimeOfDay < ShopOpenTime || endTimeOfDay > ShopCloseTime || endTime.Date != dto.StartTime.Date)
                 return (false, "Booking phải nằm trong giờ làm việc (8:00 - 18:00)", null);
 
-            // ===== XỬ LÝ RACE CONDITION: 2 request đặt cùng khung giờ =====
-            // Dùng transaction + khóa (UPDLOCK, HOLDLOCK) ở tầng SQL Server để đảm bảo
-            // chỉ 1 request được đọc + ghi tại 1 thời điểm cho cùng StaffId.
-            // Request thứ 2 sẽ phải CHỜ request thứ 1 commit xong mới được đọc tiếp,
-            // nên lúc đó sẽ thấy đúng booking vừa tạo và phát hiện trùng lịch chính xác.
             await using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
 
             try
             {
-                // Khóa toàn bộ booking (chưa hủy) của nhân viên này lại trong lúc kiểm tra + insert
                 var lockedBookings = await _context.Bookings
                     .FromSqlInterpolated($@"
                         SELECT * FROM Bookings WITH (UPDLOCK, HOLDLOCK)
                         WHERE StaffId = {dto.StaffId} AND Status != 'Cancelled'")
                     .ToListAsync();
 
-                // Giả lập delay để test deadlock/timeout khi 2 request cùng đặt trùng khung giờ
-                await Task.Delay(5000);
+                // Giả lập delay để test 
+                //await Task.Delay(5000);
 
-                // Kiểm tra trùng lịch: NewStart < ExistingEnd AND NewEnd > ExistingStart
                 var isOverlapped = lockedBookings.Any(b =>
                     dto.StartTime < b.EndTime && endTime > b.StartTime);
 
@@ -92,11 +83,14 @@ namespace Backend.Services.Booking
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
+                var result = await MapToDtoAsync(booking.Id);
+                if (result != null)
+                    await _notificationService.NotifyBookingCreatedAsync(result);
+
                 return (true, null, await MapToDtoAsync(booking.Id));
             }
             catch (Microsoft.Data.SqlClient.SqlException ex) when (ex.Number is 1205 or 1222)
             {
-                // 1205 = Deadlock, 1222 = Lock request timeout - đúng là do tranh chấp khóa, yêu cầu thử lại
                 await transaction.RollbackAsync();
                 return (false, "Hệ thống đang xử lý một yêu cầu khác cho cùng khung giờ, vui lòng thử lại", null);
             }
@@ -115,7 +109,7 @@ namespace Backend.Services.Booking
 
             var query = _context.Bookings.AsQueryable();
 
-            // Customer chỉ thấy booking của chính mình; Admin thấy tất cả
+            
             if (!isAdmin)
                 query = query.Where(b => b.CustomerId == currentUserId);
 
@@ -125,7 +119,7 @@ namespace Backend.Services.Booking
             if (date.HasValue)
                 query = query.Where(b => DateOnly.FromDateTime(b.StartTime) == date.Value);
 
-            query = query.OrderByDescending(b => b.StartTime); // bắt buộc có ORDER BY khi Skip/Take
+            query = query.OrderByDescending(b => b.StartTime); 
 
             var totalCount = await query.CountAsync();
 
@@ -167,9 +161,8 @@ namespace Backend.Services.Booking
             if (booking == null)
                 return (false, "Không tìm thấy booking", null);
 
-            // Customer chỉ xem được booking của chính mình
             if (!isAdmin && booking.CustomerId != currentUserId)
-                return (false, "Không tìm thấy booking", null); // trả 404 thay vì 403 để tránh lộ thông tin tồn tại
+                return (false, "Không tìm thấy booking", null); 
 
             return (true, null, await MapToDtoAsync(id));
         }
@@ -183,11 +176,9 @@ namespace Backend.Services.Booking
             if (!isAdmin && booking.CustomerId != currentUserId)
                 return (false, "Không tìm thấy booking");
 
-            // Chỉ được hủy khi đang Pending - Confirmed/Completed đều không được hủy nữa (áp dụng cho cả Admin)
             if (booking.Status != "Pending")
                 return (false, "Chỉ có thể hủy booking khi đang ở trạng thái chờ xác nhận (Pending)");
 
-            // Phòng trường hợp đã quá giờ bắt đầu nhưng chưa ai xác nhận/hủy
             if (booking.StartTime <= DateTime.Now)
                 return (false, "Không thể hủy booking đã bắt đầu");
 
@@ -195,6 +186,10 @@ namespace Backend.Services.Booking
             booking.CancellationReason = dto.CancellationReason;
 
             await _context.SaveChangesAsync();
+
+            var result = await MapToDtoAsync(id);
+            if (result != null)
+                await _notificationService.NotifyBookingStatusChangedAsync(result);
             return (true, null);
         }
 
@@ -209,6 +204,11 @@ namespace Backend.Services.Booking
 
             booking.Status = "Confirmed";
             await _context.SaveChangesAsync();
+
+            var result = await MapToDtoAsync(id);
+            if (result != null)
+                await _notificationService.NotifyBookingStatusChangedAsync(result);
+
             return (true, null);
         }
 
@@ -223,6 +223,11 @@ namespace Backend.Services.Booking
 
             booking.Status = "Completed";
             await _context.SaveChangesAsync();
+
+            var result = await MapToDtoAsync(id);
+            if (result != null)
+                await _notificationService.NotifyBookingStatusChangedAsync(result);
+
             return (true, null);
         }
 
@@ -236,15 +241,14 @@ namespace Backend.Services.Booking
             if (staff == null || !staff.IsActive)
                 return (false, "Nhân viên không tồn tại hoặc đã bị khóa", null);
 
-            // Lấy lịch làm việc của nhân viên trong ngày được yêu cầu
             var schedules = await _context.WorkSchedules
                 .Where(w => w.StaffId == staffId && w.WorkDate == date)
                 .ToListAsync();
 
             if (schedules.Count == 0)
-                return (true, null, new List<string>()); // nhân viên không làm việc ngày này
+                return (true, null, new List<string>()); 
 
-            // Lấy các booking đã tồn tại (chưa hủy) của nhân viên trong ngày đó để loại trừ
+            
             var existingBookings = await _context.Bookings
                 .Where(b => b.StaffId == staffId && b.Status != "Cancelled" && b.StartTime.Date == date.ToDateTime(TimeOnly.MinValue).Date)
                 .Select(b => new { b.StartTime, b.EndTime })
@@ -256,7 +260,6 @@ namespace Backend.Services.Booking
 
             foreach (var schedule in schedules)
             {
-                // Giao giữa lịch làm việc của nhân viên và giờ mở cửa của shop (8h-18h)
                 var effectiveStart = schedule.StartTime < ShopOpenTime ? ShopOpenTime : schedule.StartTime;
                 var effectiveEnd = schedule.EndTime > ShopCloseTime ? ShopCloseTime : schedule.EndTime;
 
@@ -267,10 +270,8 @@ namespace Backend.Services.Booking
                     var slotStartDateTime = date.ToDateTime(slotStart);
                     var slotEndDateTime = date.ToDateTime(slotEnd);
 
-                    // Bỏ qua slot đã ở quá khứ (nếu date là hôm nay)
                     var isPast = slotStartDateTime <= now;
 
-                    // Kiểm tra giao với booking đã có: NewStart < ExistingEnd AND NewEnd > ExistingStart
                     var isOverlapped = existingBookings.Any(b =>
                         slotStartDateTime < b.EndTime && slotEndDateTime > b.StartTime);
 
@@ -284,7 +285,36 @@ namespace Backend.Services.Booking
             return (true, null, availableSlots);
         }
 
-        // Helper: load lại booking kèm thông tin liên quan (tên khách, dịch vụ, nhân viên) để trả về DTO
+        public async Task ProcessOverdueBookingsAsync()
+        {
+            var now = DateTime.Now;
+
+            var overduePending = await _context.Bookings
+                .Where(b => b.Status == "Pending" && b.StartTime <= now)
+                .ToListAsync();
+
+            foreach (var booking in overduePending)
+            {
+                booking.Status = "Cancelled";
+                booking.CancellationReason = "Tự động hủy do quá hạn xác nhận";
+            }
+
+            var overdueConfirmed = await _context.Bookings
+                .Where(b => b.Status == "Confirmed" && b.EndTime <= now)
+                .ToListAsync();
+
+            foreach (var booking in overdueConfirmed)
+            {
+                booking.Status = "Completed";
+            }
+
+            if (overduePending.Count > 0 || overdueConfirmed.Count > 0)
+            {
+                await _context.SaveChangesAsync();
+            }
+        }
+
+        //  load lại booking 
         private async Task<BookingDto?> MapToDtoAsync(int id)
         {
             return await _context.Bookings

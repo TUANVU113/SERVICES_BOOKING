@@ -21,14 +21,12 @@ namespace Backend.Services.Staff
 
             var query = _context.Staffs.AsQueryable();
 
-            // Customer (hoặc khách chưa đăng nhập) chỉ xem nhân viên đang hoạt động
-            // Admin xem được cả 2 trạng thái
             if (!isAdmin)
             {
                 query = query.Where(s => s.IsActive);
             }
 
-            query = query.OrderBy(s => s.Id); // bắt buộc phải có ORDER BY khi dùng Skip/Take
+            query = query.OrderBy(s => s.Id); 
 
             var totalCount = await query.CountAsync();
 
@@ -70,7 +68,6 @@ namespace Backend.Services.Staff
 
         public async Task<(bool Success, string? ErrorMessage, StaffDto? Data)> CreateStaffAsync(CreateStaffDto dto)
         {
-            // Kiểm tra trùng email trước khi insert (Email có UNIQUE constraint ở DB)
             var emailExists = await _context.Staffs.AnyAsync(s => s.Email == dto.Email);
             if (emailExists)
                 return (false, "Email đã tồn tại", null);
@@ -79,7 +76,7 @@ namespace Backend.Services.Staff
             {
                 FullName = dto.FullName,
                 Email = dto.Email,
-                IsActive = true // nhân viên mới tạo mặc định đang hoạt động
+                IsActive = true 
             };
 
             _context.Staffs.Add(staff);
@@ -102,7 +99,6 @@ namespace Backend.Services.Staff
             if (staff == null)
                 return (false, "Không tìm thấy nhân viên");
 
-            // Nếu đổi email, kiểm tra email mới có bị trùng với nhân viên khác không
             var emailExists = await _context.Staffs.AnyAsync(s => s.Email == dto.Email && s.Id != id);
             if (emailExists)
                 return (false, "Email đã tồn tại");
@@ -119,7 +115,7 @@ namespace Backend.Services.Staff
             var staff = await _context.Staffs.FindAsync(id);
             if (staff == null) return false;
 
-            staff.IsActive = false; // khóa nhân viên = soft delete, không xóa cứng
+            staff.IsActive = false; 
             await _context.SaveChangesAsync();
             return true;
         }
@@ -129,13 +125,12 @@ namespace Backend.Services.Staff
             var staff = await _context.Staffs.FindAsync(id);
             if (staff == null) return false;
 
-            staff.IsActive = true; // mở lại nhân viên đã bị khóa
+            staff.IsActive = true; 
             await _context.SaveChangesAsync();
             return true;
         }
         public async Task<List<StaffDto>> GetStaffsWorkingOnDateAsync(DateOnly date)
         {
-            // Chỉ lấy nhân viên: đang hoạt động (chưa bị khóa) VÀ có ca làm việc đúng ngày được hỏi
             return await _context.Staffs
                 .Where(s => s.IsActive && _context.WorkSchedules.Any(w => w.StaffId == s.Id && w.WorkDate == date))
                 .Select(s => new StaffDto

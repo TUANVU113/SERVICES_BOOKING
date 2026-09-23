@@ -21,7 +21,6 @@ namespace Backend.Controllers.Auth
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequestDto request)
         {
-            // Validate dữ liệu đầu vào (dựa trên [Required], [EmailAddress] trong DTO)
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 

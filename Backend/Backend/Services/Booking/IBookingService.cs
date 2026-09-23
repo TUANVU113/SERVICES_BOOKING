@@ -20,5 +20,7 @@ namespace Backend.Services.Booking
         Task<(bool Success, string? ErrorMessage)> CompleteBookingAsync(int id);
 
         Task<(bool Success, string? ErrorMessage, List<string>? Slots)> GetAvailableSlotsAsync(int serviceId, int staffId, DateOnly date);
+
+        Task ProcessOverdueBookingsAsync();
     }
 }

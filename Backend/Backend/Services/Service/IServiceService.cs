@@ -11,5 +11,6 @@ namespace Backend.Services.Service
         Task<bool> UpdateServiceAsync(int id, UpdateServiceDto dto);
         Task<bool> LockServiceAsync(int id);
         Task<bool> UnlockServiceAsync(int id);
+        
     }
 }

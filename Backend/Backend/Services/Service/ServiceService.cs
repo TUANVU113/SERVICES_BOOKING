@@ -15,15 +15,13 @@ namespace Backend.Services.Service
 
         public async Task<ServiceDto> CreateServiceAsync(CreateServiceDto dto)
         {
-            // Không cần check lại DurationMinutes/Price ở đây vì [Range] trong DTO
-            // đã được kiểm tra qua ModelState.IsValid ở Controller trước khi vào tới đây.
             var service = new Models.Service
             {
                 Name = dto.Name,
                 Description = dto.Description,
                 DurationMinutes = dto.DurationMinutes,
                 Price = dto.Price,
-                IsActive = true // dịch vụ mới tạo mặc định đang hoạt động
+                IsActive = true 
             };
 
             _context.Services.Add(service);
@@ -42,17 +40,14 @@ namespace Backend.Services.Service
 
         public async Task<PagedResultDto<ServiceDto>> GetServicesAsync(int pageNumber, int pageSize)
         {
-            // Chặn giá trị bất thường từ client (VD: pageSize = -5 hoặc quá lớn)
             if (pageNumber < 1) pageNumber = 1;
             if (pageSize < 1 || pageSize > 100) pageSize = 10;
 
             var query = _context.Services
-                .OrderBy(s => s.Id); // bắt buộc phải có ORDER BY khi dùng Skip/Take
+                .OrderBy(s => s.Id); 
 
-            // Đếm tổng số bản ghi tại DB (không load data)
             var totalCount = await query.CountAsync();
 
-            // Chỉ lấy đúng số dòng của trang hiện tại -> EF dịch thành OFFSET/FETCH
             var services = await query
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
@@ -112,7 +107,7 @@ namespace Backend.Services.Service
             var service = await _context.Services.FindAsync(id);
             if (service == null) return false;
 
-            service.IsActive = false; // khóa dịch vụ = soft delete, không xóa cứng
+            service.IsActive = false; 
             await _context.SaveChangesAsync();
             return true;
         }
@@ -122,9 +117,11 @@ namespace Backend.Services.Service
             var service = await _context.Services.FindAsync(id);
             if (service == null) return false;
 
-            service.IsActive = true; // mở lại dịch vụ đã bị khóa
+            service.IsActive = true; 
             await _context.SaveChangesAsync();
             return true;
         }
+
+        
     }
 }

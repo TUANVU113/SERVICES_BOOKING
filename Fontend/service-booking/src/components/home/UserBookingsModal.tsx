@@ -84,6 +84,22 @@ export const UserBookingsModal: React.FC<UserBookingsModalProps> = ({
     }
   }, [isOpen, isLoggedIn, token, loadBookings]);
 
+  // Listen to SignalR real-time status updates for customer bookings
+  useEffect(() => {
+    const handleBookingStatusChanged = (e: Event) => {
+      const customEvent = e as CustomEvent<BookingItem>;
+      const updatedBooking = customEvent.detail;
+      setBookings((prev) =>
+        prev.map((b) => (b.id === updatedBooking.id ? { ...b, status: updatedBooking.status } : b))
+      );
+    };
+
+    window.addEventListener("booking:statusChanged", handleBookingStatusChanged);
+    return () => {
+      window.removeEventListener("booking:statusChanged", handleBookingStatusChanged);
+    };
+  }, []);
+
   if (!isOpen) return null;
 
   // Handle Cancel Submit
