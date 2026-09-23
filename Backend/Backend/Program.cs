@@ -108,8 +108,11 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
-//app.UseStaticFiles(); // file test tĩnh trong wwwroot
+app.UseStaticFiles(); // phục vụ file test tĩnh trong wwwroot (nếu có)
+
 app.UseHttpsRedirection();
+
+app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
